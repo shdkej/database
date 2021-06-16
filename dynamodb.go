@@ -20,6 +20,10 @@ func (conn *Dynamodb) Init() error {
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	conn.svc = dynamodb.New(sess)
+	err := conn.getTable()
+	if err != nil {
+		log.Println("failed to load table", err)
+	}
 	log.Println("DynamoDB Access")
 
 	return nil
@@ -31,7 +35,7 @@ func (conn *Dynamodb) getTable() error {
 	for {
 		result, err := conn.svc.ListTables(input)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 			return err
 		}
 		for _, n := range result.TableNames {
@@ -58,10 +62,11 @@ func (conn *Dynamodb) Ping() error {
 	return nil
 }
 
-func (conn *Dynamodb) Create(tag Note) error {
+func (conn *Dynamodb) Create(tag map[string]interface{}) error {
 	av, err := dynamodbattribute.MarshalMap(tag)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return err
 	}
 	input := &dynamodb.PutItemInput{
 		Item:      av,
@@ -70,7 +75,7 @@ func (conn *Dynamodb) Create(tag Note) error {
 
 	_, err = conn.svc.PutItem(input)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return err
 	}
 	return nil
@@ -86,13 +91,19 @@ func (conn *Dynamodb) Get(key string) (map[string]string, error) {
 		},
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return nil, err
 	}
 
-	item := map[string]string{}
+	if result.Item == nil {
+		return nil, nil
+	}
+
+	var item map[string]string
 	err = dynamodbattribute.UnmarshalMap(result.Item, &item)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Unmarshal failed, item: %v, err: %v", result.Item, err)
+		return nil, err
 	}
 
 	log.Println("Get: ", item)
@@ -126,7 +137,7 @@ func (conn *Dynamodb) Delete(key string) error {
 	}
 	_, err := conn.svc.DeleteItem(input)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return err
 	}
 	log.Println("Deleted : " + key)
@@ -154,14 +165,17 @@ func (conn *Dynamodb) Scan(key string) ([]string, error) {
 		log.Println(err)
 	}
 
+	log.Printf("item: %v", result.Items)
+
 	var items []string
 	for _, i := range result.Items {
-		var item interface{}
+		var item map[string]string
 		err = dynamodbattribute.UnmarshalMap(i, &item)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			return items, err
 		}
-		items = append(items, item.(string))
+		items = append(items, item["Name"])
 	}
 
 	return items, nil

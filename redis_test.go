@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/fatih/structs"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -16,36 +17,35 @@ var _ = Describe("Running Redis", func() {
 		})
 	})
 
-	Context("Test sets", func() {
-		tag := Note{
-			FileName: "main.md",
-			Tag:      "Good",
-			TagLine:  "Good Enough",
-		}
-		tagPrefix := "tag:"
+	tag := Object{
+		ID:      "123456",
+		Name:    "Good",
+		Content: "Good Enough",
+	}
+	tagPrefix := "tag:"
+	mappedTag := structs.Map(tag)
+	m := make(map[string]string, len(mappedTag))
+	for i, v := range mappedTag {
+		m[i] = v.(string)
+	}
 
+	Context("Test sets", func() {
 		It("set Sets", func() {
-			Expect(pool.Create(tagPrefix, tag)).Should(BeNil())
+			Expect(pool.Create(mappedTag)).Should(BeNil())
 		})
 		It("get Sets", func() {
-			Expect(pool.Get(tagPrefix + tag.Tag)).Should(Equal(tag))
+			Expect(pool.Get(tag.Name)).Should(Equal(m))
 		})
 		It("get empty Sets", func() {
-			Expect(pool.Get("empty")).Should(Equal(Note{}))
+			Expect(pool.Get("empty")).Should(Equal(map[string]string{}))
 		})
 		It("delete Sets", func() {
-			Expect(pool.Delete(tag.Tag)).Should(BeNil())
+			Expect(pool.Delete(tag.Name)).Should(BeNil())
 		})
 	})
 
 	Context("Test Misc Function", func() {
-		tag := Note{
-			FileName: "main.md",
-			Tag:      "Good",
-			TagLine:  "Good Enough",
-		}
-		tagPrefix := "tag:"
-		pool.Create(tagPrefix, tag)
+		pool.Create(mappedTag)
 		tags, err := pool.Scan(tagPrefix)
 		It("get scan body", func() {
 			Expect(tags).NotTo(BeNil())

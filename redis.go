@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
 )
 
@@ -52,10 +51,8 @@ func (c *Redis) Hits(page string) (int64, error) {
 	return hits, nil
 }
 
-func (c *Redis) Create(prefix string, tag Note) error {
-	articleM := structs.Map(tag)
-
-	err := c.redis.HMSet(prefix+tag.Tag, articleM).Err()
+func (c *Redis) Create(tag map[string]interface{}) error {
+	err := c.redis.HMSet(tag["Name"].(string), tag).Err()
 	if err != nil {
 		return err
 	}

@@ -16,13 +16,21 @@ type DB struct {
 	prefix string
 }
 
+type Object struct {
+	ID        string
+	Name      string
+	Content   string
+	CreatedAt string
+	UpdatedAt string
+}
+
 // implemented functions to use the data source
 type DataSource interface {
 	Init() error
 	Ping() error
 	Hits(string) (int64, error)
 	Get(string) (map[string]string, error)
-	Create(string, map[string]interface{}) error
+	Create(map[string]interface{}) error
 	Update(string, string, interface{}) error
 	Delete(string) error
 	Scan(string) ([]string, error)
@@ -47,18 +55,21 @@ func (v *DB) SetPrefix(prefix string) {
 // data := `{"name":"new"}`
 // db.Create(data)
 // db.Get("new")
-func (v *DB) Init() {
+func (v *DB) Init() error {
 	err := v.Store.Init()
 	if err != nil {
 		log.Println("init failed", err)
+		return err
 	}
 	err = v.Store.Ping()
 	if err != nil {
 		log.Println("ping failed", err)
+		return err
 	}
 
 	v.SetPrefix("")
 	log.Println("Init Completed")
+	return nil
 }
 
 func (v *DB) Hits(s string) int64 {
@@ -70,13 +81,13 @@ func (v *DB) Hits(s string) int64 {
 	return hits
 }
 
-func (v *DB) GetEverything() ([]Note, error) {
+func (v *DB) GetEverything() ([]Object, error) {
 	m, err := v.Store.Scan(v.prefix)
 	if err != nil {
-		return []Note{}, err
+		return []Object{}, err
 	}
 
-	var notes []Note
+	var notes []Object
 	for _, value := range m {
 		tag, err := v.Get(value)
 		if err != nil {
@@ -89,9 +100,9 @@ func (v *DB) GetEverything() ([]Note, error) {
 	return notes, nil
 }
 
-func (v *DB) Get(title string) (Note, error) {
+func (v *DB) Get(title string) (Object, error) {
 	if title == "tag:" || title == "" {
-		return Note{}, nil
+		return Object{}, nil
 	}
 
 	if !strings.HasPrefix(title, v.prefix) {
@@ -99,18 +110,18 @@ func (v *DB) Get(title string) (Note, error) {
 	}
 	m, err := v.Store.Get(title)
 	if err != nil {
-		return Note{}, err
+		return Object{}, err
 	}
 
-	tag := Note{}
+	tag := Object{}
 	for key, value := range m {
 		switch key {
-		case "Tag":
-			tag.Tag = value
-		case "TagLine":
-			tag.TagLine = value
-		case "FileName":
-			tag.FileName = value
+		case "ID":
+			tag.ID = value
+		case "Name":
+			tag.Name = value
+		case "Content":
+			tag.Content = value
 		case "CreatedAt":
 			tag.CreatedAt = value
 		case "UpdatedAt":
@@ -120,16 +131,17 @@ func (v *DB) Get(title string) (Note, error) {
 	return tag, nil
 }
 
-func (v *DB) Create(value Note) error {
+func (v *DB) Create(value Object) error {
 	now := time.Now().Format("2006-01-02")
 	value.CreatedAt = now
 	value.UpdatedAt = now
+	value.Name = v.prefix + value.Name
 	note := structs.Map(value)
-	err := v.Store.Create(v.prefix, note)
+	err := v.Store.Create(note)
 	if err != nil {
 		return err
 	}
-	log.Println("put complete", value.Tag)
+	log.Println("put complete", value.Name)
 	return nil
 }
 
