@@ -50,12 +50,15 @@ func (v *DB) SetPrefix(prefix string) {
 }
 
 // usage:
-// db := database.DB{} // optional: prefix:"table"
+// db := database.DB{} // default is redis, optional: Store: Redis{}, prefix:"table"
 // db.Init()
 // data := `{"name":"new"}`
 // db.Create(data)
 // db.Get("new")
 func (v *DB) Init() error {
+	if v.Store == nil {
+		v.Store = &Redis{}
+	}
 	err := v.Store.Init()
 	if err != nil {
 		log.Println("init failed", err)
