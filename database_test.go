@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	parsing "github.com/shdkej/note-server/parsing"
 )
 
 func TestLocal(t *testing.T) {
@@ -14,14 +13,6 @@ func TestLocal(t *testing.T) {
 }
 
 var _ = Describe("Test Load Data", func() {
-	Context("Test Initial", func() {
-		taglines, err := parsing.GetTagAll()
-		It("get tagline all", func() {
-			Expect(len(taglines)).NotTo(BeZero())
-			Expect(err).Should(BeNil())
-		})
-	})
-
 	tag := Object{
 		ID:      "12345",
 		Name:    "Good",
@@ -85,7 +76,7 @@ var _ = Describe("Test Load Data", func() {
 		})
 
 		It("Test change table, write and read", func() {
-			//v.Create(tag)
+			//v.Create(tag) TODO
 			value, err := v.Get("Good")
 			Expect(value).NotTo(BeNil())
 			//Expect(value.Name).Should(Equal(tagPrefix + tag.Name))
